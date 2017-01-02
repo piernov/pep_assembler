@@ -34,7 +34,7 @@ YY_DECL;
 %token END  0  "end of file"
 %token <std::string> LABEL
 %token REGISTER
-%token EQUAL COMMA DOT COLON HASH
+%token EQUAL COMMA DOT COLON HASH LBRACKET RBRACKET
 %token <int> NUMBER HEXADECIMAL
 %token WHITESPACE NEWLINE
 
@@ -178,10 +178,20 @@ instruction
 
 
 // Class C
+   | LDR WHITESPACE indent register separator LBRACKET register separator immediate RBRACKET // IMM5
+	{ $$ = (3 << 13) + (1 << 11) + ($9 << 6) + ($7 << 3) + $4; }
+   | LDR WHITESPACE indent register separator LBRACKET register RBRACKET // No offset
+	{ $$ = (3 << 13) + (1 << 11) + ($7 << 3) + $4; }
+   | STR WHITESPACE indent register separator LBRACKET register separator immediate RBRACKET // IMM5
+	{ $$ = (3 << 13) + (0 << 11) + ($9 << 6) + ($7 << 3) + $4; }
+   | STR WHITESPACE indent register separator LBRACKET register RBRACKET // No offset
+	{ $$ = (3 << 13) + (0 << 11) + ($7 << 3) + $4; }
 
 // Class D
    | B condition WHITESPACE indent label
 	{ $$ = (13 << 12) + ($2 << 8) + translator.generateOffset($5); }
+   | B WHITESPACE indent immediate // IMM11 Unconditional branch
+	{ $$ = (24 << 11) + $4; }
    ;
 
 line

@@ -78,6 +78,8 @@ al		{ BEGIN(INITIAL); return yy::parser::make_AL(loc); }
 :		{ return yy::parser::make_COLON(loc); }
 =		{ return yy::parser::make_EQUAL(loc); }
 #		{ return yy::parser::make_HASH(loc); }
+\[		{ return yy::parser::make_LBRACKET(loc); }
+\]		{ return yy::parser::make_RBRACKET(loc); }
 
 {WS}		{ return yy::parser::make_WHITESPACE(loc); }
 \n		{ return yy::parser::make_NEWLINE(loc); }
