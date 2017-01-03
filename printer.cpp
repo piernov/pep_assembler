@@ -4,7 +4,7 @@
 #include <iostream>
 
 void HexPrinter::print(uint8_t c) {
-	std::cout << "0x" << std::hex << std::setfill('0') << std::setw(2) << c << " ";
+	std::cout << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(c) << " ";
 }
 
 void BinPrinter::print(uint8_t c) {
