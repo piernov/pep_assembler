@@ -3,18 +3,17 @@
 %defines
 %define api.token.constructor
 %define api.value.type variant
-%define parse.assert
+//%define parse.assert
 
 //%define parse.trace
-%define parse.error verbose
+//%define parse.error verbose
 
 %locations
 
 %code requires // *.hh
 {
 #include <string>
-#include <bitset>
-#include <iomanip>
+#include <memory>
 #include "translator.h"
 
 // Tell Flex the lexer's prototype ...
@@ -137,8 +136,8 @@ instruction
 	{ $$ = (3 << 11) + (0 << 9) + ($8 << 6) + ($6 << 3) + $4; }
    | SUBS WHITESPACE indent register separator register separator register
 	{ $$ = (3 << 11) + (1 << 9) + ($8 << 6) + ($6 << 3) + $4; }
-   | ADDS WHITESPACE indent register separator register separator immediate // IMM3
-	{ $$ = (3 << 11) + (2 << 9) + ($8 << 6) + ($6 << 3) + $4; }
+//   | ADDS WHITESPACE indent register separator register separator immediate // IMM3
+//	{ $$ = (3 << 11) + (2 << 9) + ($8 << 6) + ($6 << 3) + $4; }
    | MOVS WHITESPACE indent register separator immediate // IMM8
 	{ $$ = (1 << 13) + (0 << 11) + ($4 << 8) + $6; }
 
@@ -197,7 +196,7 @@ instruction
 line
    :
    | instruction
-	{ translator.printInstruction($1); }
+	{ translator.addInstruction($1); }
    | label COLON
 	{ printf("Label: %s\n", $1.c_str()); translator.addLabel($1); }
    ;
@@ -215,7 +214,8 @@ void yy::parser::error(const yy::parser::location_type& loc, const std::string& 
 }
 
 int main(int argc, char **argv) {
-	Translator translator;
+	std::shared_ptr<Printer> printer = std::make_shared<HexPrinter>();
+	Translator translator(printer);
 	yy::parser parser(translator);
 	
 	auto ret = parser.parse();
