@@ -9,8 +9,18 @@
 #include <iomanip>
 #include <iostream>
 
+void LogisimPrinter::printHeader() {
+	std::cout << "v2.0 raw" << std::endl;
+}
+
+void LogisimPrinter::print(uint8_t c) {
+	std::cout << std::hex // Set hexadecimal print mode
+		<< static_cast<int>(c) // Cast to integer for proper printing
+		<< " "; // Print separator
+}
+
 void HexPrinter::print(uint8_t c) {
-	std::cout << "0x" // Print hexadecimal prefix
+	std::cout /*<< "0x"*/ // Print hexadecimal prefix
 		<< std::hex // Set hexadecimal print mode
 		<< std::setfill('0') // Fill with 0
 		<< std::setw(2) // Set width to 2 hexadecimal characters (8-bit integer)

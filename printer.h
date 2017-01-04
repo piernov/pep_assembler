@@ -11,6 +11,14 @@ class Printer {
 public:
 	// Actual printing function
 	virtual void print(uint8_t c) = 0;
+
+	virtual void printHeader() {}
+};
+
+// Prints an unsigned 8bit integer as Logisim format, for example "f f0"
+class LogisimPrinter : public Printer {
+	void print(uint8_t c);
+	void printHeader();
 };
 
 // Prints an unsigned 8bit integer as hexadecimal, for example "0x0f 0xf0"

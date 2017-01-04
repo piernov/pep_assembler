@@ -241,7 +241,7 @@ void yy::parser::error(const std::string& msg) {
 }
 
 int main(int argc, char **argv) {
-	std::shared_ptr<Printer> printer = std::make_shared<HexPrinter>(); // Printer class to use for generating the machine code
+	std::shared_ptr<Printer> printer = std::make_shared<LogisimPrinter>(); // Printer class to use for generating the machine code
 	Translator translator(printer);
 	yy::parser parser(translator);
 	

@@ -53,6 +53,7 @@ void Translator::addInstruction(uint16_t op) {
 }
 
 void Translator::printAll() {
+	std::cout << "v2.0 raw" << std::endl;
 	for (auto &op : buffer) {
 		if (little_endian) { // Reverse printing for little-endian mode
 			printer->print(op & 0xFF);
