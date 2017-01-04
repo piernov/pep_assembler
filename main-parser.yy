@@ -8,8 +8,6 @@
 //%define parse.trace
 //%define parse.error verbose
 
-%locations
-
 %code requires // *.hh
 {
 #include <string>
@@ -209,8 +207,8 @@ program
 %%
 
 // Mandatory error function
-void yy::parser::error(const yy::parser::location_type& loc, const std::string& msg) {
-	std::cerr << loc << ": " << msg << std::endl;
+void yy::parser::error(const std::string& msg) {
+	std::cerr << msg << std::endl;
 }
 
 int main(int argc, char **argv) {
