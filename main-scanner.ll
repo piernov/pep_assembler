@@ -1,3 +1,9 @@
+/**
+ * (subset of) ARM v7-M Thumb UAL scanner
+ *
+ * piernov <piernov@piernov.org>
+ */
+
 %{
 #include "main-parser.hh"
 %}

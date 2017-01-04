@@ -1,10 +1,16 @@
-%language "c++"
-%skeleton "lalr1.cc" /* -*- C++ -*- */
+/**
+ * (subset of) ARM v7-M Thumb UAL parser
+ *
+ * piernov <piernov@piernov.org>
+ */
+
+%language "c++" // Declares a C++ Bison parser
+%skeleton "lalr1.cc" // Using the C++ skeleton
 %defines
 %define api.token.constructor
 %define api.value.type variant
-//%define parse.assert
 
+//%define parse.assert
 //%define parse.trace
 //%define parse.error verbose
 
@@ -16,7 +22,7 @@
 
 // Tell Flex the lexer's prototype ...
 # define YY_DECL \
-  yy::parser::symbol_type yylex (Translator &translator)
+  yy::parser::symbol_type yylex(Translator &translator)
 }
 
 %code
@@ -29,16 +35,28 @@ YY_DECL;
 
 %define api.token.prefix {TOK_}
 %token END  0  "end of file"
+
+// Any string which could be a label
 %token <std::string> LABEL
+
+// Register prefix 'r'
 %token REGISTER
+
+// Punctuation
 %token EQUAL COMMA DOT COLON HASH LBRACKET RBRACKET
+
+// Numbers in decimal/hexadecimal bases
 %token <int> NUMBER HEXADECIMAL
+
+// Whitespaces
 %token WHITESPACE NEWLINE
 
+// Instructions
 %token ADCS ADDS ANDS ASRS BICS CMP CMN EORS LDR LSLS LSRS
 %token MOVS MULS MVNS ORRS RORS RSBS SBCS STR SUBS TST
-
 %token B
+
+// Conditions
 %token EQ NE CS HS CC LO MI PL VS VC HI LS GE LT GT LE AL
 
 %type <int> number
@@ -52,21 +70,26 @@ YY_DECL;
 
 %%
 
+// Indentation, either nothing or a series of whitespaces
+// Does not handle tabulations for now
 indent
    : // Empty
    | indent WHITESPACE
    ;
 
+// Instructions' parameters separator
 separator
    : COMMA indent
    ;
 
+// Register-type instruction's parameter
 register
    : REGISTER NUMBER
-	{ $$ = $2; }
+	{ $$ = $2; } // Keep the register number
    ;
 
-// See A7.3
+// Conditions for conditional branching instruction B
+// See A7.3 in ARM v7-M Architecture Reference Manual
 condition
    : EQ
 	{ $$ = 0; }
@@ -103,6 +126,7 @@ condition
  */
    ;
 
+// Numbers in decimal/hexadecimal bases
 number
    : NUMBER
 	{ $$ = $1; }
@@ -110,20 +134,25 @@ number
 	{ $$ = $1; }
    ;
 
+// Immediate-type instructions parameter, '#' symbol followed by a number (decimal/hexadecimal)
 immediate
    : HASH number
 	{ $$ = $2; }
    ;
 
+// Label string for declaration and usage
 label
-   : B LABEL
+   : B LABEL // Match label beginning with a B, workaround for conflict with the B instruction
 	{ $$ = $2; }
-   | LABEL
+   | LABEL // Match label not beginning with a B
 	{ $$ = $1; }
    ;
 
+// Instructions supported by our architecture
+// Translate them to machine code
+// Does not check the immediate size yet, programmer's responsibility
 instruction
-// Class A
+// Class A — Shift, add, sub, mov
    : LSLS WHITESPACE indent register separator register separator immediate // IMM5
 	{ $$ = (0 << 11) + ($8 << 6) + ($6 << 3) + $4; }
    | LSRS WHITESPACE indent register separator register separator immediate // IMM5
@@ -134,12 +163,12 @@ instruction
 	{ $$ = (3 << 11) + (0 << 9) + ($8 << 6) + ($6 << 3) + $4; }
    | SUBS WHITESPACE indent register separator register separator register
 	{ $$ = (3 << 11) + (1 << 9) + ($8 << 6) + ($6 << 3) + $4; }
-//   | ADDS WHITESPACE indent register separator register separator immediate // IMM3
+//   | ADDS WHITESPACE indent register separator register separator immediate // IMM3, apparently removed from the list of instructions to be implemented…
 //	{ $$ = (3 << 11) + (2 << 9) + ($8 << 6) + ($6 << 3) + $4; }
    | MOVS WHITESPACE indent register separator immediate // IMM8
 	{ $$ = (1 << 13) + (0 << 11) + ($4 << 8) + $6; }
 
-// Class B
+// Class B — Data processing
    | ANDS WHITESPACE indent register separator register
 	{ $$ = (16 << 10) + (0 << 6) + ($6 << 3) + $4; }
    | EORS WHITESPACE indent register separator register
@@ -174,51 +203,52 @@ instruction
 	{ $$ = (16 << 10) + (15 << 6) + ($6 << 3) + $4; }
 
 
-// Class C
-   | LDR WHITESPACE indent register separator LBRACKET register separator immediate RBRACKET // IMM5
+// Class C — Load/Store
+   | LDR WHITESPACE indent register separator LBRACKET register separator immediate RBRACKET // IMM5 offset
 	{ $$ = (3 << 13) + (1 << 11) + ($9 << 6) + ($7 << 3) + $4; }
-   | LDR WHITESPACE indent register separator LBRACKET register RBRACKET // No offset
+   | LDR WHITESPACE indent register separator LBRACKET register RBRACKET // No offset = 0
 	{ $$ = (3 << 13) + (1 << 11) + ($7 << 3) + $4; }
-   | STR WHITESPACE indent register separator LBRACKET register separator immediate RBRACKET // IMM5
+   | STR WHITESPACE indent register separator LBRACKET register separator immediate RBRACKET // IMM5 offset
 	{ $$ = (3 << 13) + (0 << 11) + ($9 << 6) + ($7 << 3) + $4; }
-   | STR WHITESPACE indent register separator LBRACKET register RBRACKET // No offset
+   | STR WHITESPACE indent register separator LBRACKET register RBRACKET // No offset = 0
 	{ $$ = (3 << 13) + (0 << 11) + ($7 << 3) + $4; }
 
-// Class D
-   | B condition WHITESPACE indent label
+// Class D — Branch
+   | B condition WHITESPACE indent label // Conditional branch
 	{ $$ = (13 << 12) + ($2 << 8) + translator.generateOffset($5); }
    | B WHITESPACE indent immediate // IMM11 Unconditional branch
 	{ $$ = (24 << 11) + $4; }
    ;
 
 line
-   :
+   : // Empty line
    | instruction
 	{ translator.addInstruction($1); }
-   | label COLON
-	{ printf("Label: %s\n", $1.c_str()); translator.addLabel($1); }
+   | label COLON // Label declaration
+	{ translator.addLabel($1); }
    ;
 
 program
-   : indent line indent
-   | program NEWLINE indent line indent
+   : indent line indent // A program line can have leading/trailing whitespaces
+   | program NEWLINE indent line indent // One instruction/label declaration per line
    ;
 
 %%
 
-// Mandatory error function
+// Error reporting function
 void yy::parser::error(const std::string& msg) {
 	std::cerr << msg << std::endl;
 }
 
 int main(int argc, char **argv) {
-	std::shared_ptr<Printer> printer = std::make_shared<HexPrinter>();
+	std::shared_ptr<Printer> printer = std::make_shared<HexPrinter>(); // Printer class to use for generating the machine code
 	Translator translator(printer);
 	yy::parser parser(translator);
 	
-	auto ret = parser.parse();
-	if (!ret)
-		ret = translator.fillBranchOffsets();
-	translator.printAll();
+	auto ret = parser.parse(); // Actually parse the standard input
+	if (!ret) {
+		ret = translator.fillBranchOffsets(); // Generate branch instruction's offset for post-declared labels
+		translator.printAll(); // And print the resulting machine code to standard output
+	}
 	return ret;
 }
